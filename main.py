@@ -11,8 +11,7 @@ DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
 
 
-# extract the text from a PDF by page
-def extract_text_from_pdf(pdf_path):
+def extract_text_from_pdf(pdf_path: str):
     """Extract text from a PDF file."""
     doc = fitz.open(pdf_path)
     text_by_page = []
@@ -21,7 +20,6 @@ def extract_text_from_pdf(pdf_path):
     return text_by_page
 
 
-# split the text into chunks with overlap
 def split_text_into_chunks(text, chunk_size=300, overlap=50):
     """Split text into chunks of approximately chunk_size words with overlap."""
     words = text.split()
@@ -32,25 +30,27 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
     return chunks
 
 
-def process_pdfs(data_dir: str, store):
+def get_embedding(text: str, model: str = "nomic-embed-text") -> list:
     """ """
+    response = ollama.embeddings(model=model, prompt=text)
+    return response["embedding"]
 
-    for file_name in os.listdir(data_dir):  # iterate over all pdf files
+
+def process_docs(data_dir: str, store):
+    """
+    Process all the documents in a given directory
+    :data_dir str: the directory with all the data files
+    :store lambda: a VDatabase store method to store the vectors
+    """
+
+    for file_name in os.listdir(data_dir):
         if file_name.endswith(".pdf"):
             pdf_path = os.path.join(data_dir, file_name)
-            text_by_page = extract_text_from_pdf(
-                pdf_path
-            )  # use pdf library to extract text by page from pdf
+            text_by_page = extract_text_from_pdf(pdf_path)
             for page_num, text in text_by_page:
-                chunks = split_text_into_chunks(
-                    text
-                )  # page by page chunking text, extract certain number of characters to be vectorized
-                # print(f"  Chunks: {chunks}")
+                chunks = split_text_into_chunks(text)
                 for chunk_index, chunk in enumerate(chunks):
-                    # embedding = calculate_embedding(chunk)
-                    embedding = get_embedding(
-                        chunk
-                    )  # calculate embedding for each chunk and then store
+                    embedding = get_embedding(chunk)
                     store(
                         file=file_name,
                         page=str(page_num),
@@ -61,14 +61,9 @@ def process_pdfs(data_dir: str, store):
             print(f" -----> Processed {file_name}")
 
 
-def get_embedding(text: str, model: str = "nomic-embed-text") -> list:
-    response = ollama.embeddings(model=model, prompt=text)
-    return response["embedding"]
-
-
 def main():
     redis_db = RedisStack(VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC)
-    process_pdfs("", redis_db.store)
+    process_docs("", redis_db.store)
 
 
 if __name__ == "__main__":
