@@ -35,7 +35,7 @@ class RedisStack(VDatabase):
         )
 
     def store(self, file, page, chunk, embedding):
-        """"""
+        """ """
         key = f"{self.prefix}:{file}_page_{page}_chunk_{chunk}"
         self.client.hset(
             key,
@@ -50,6 +50,7 @@ class RedisStack(VDatabase):
         )
 
     def retreive(self, embedding):
+        """ """
         q = (
             Query("*=>[KNN 5 @embedding $vec AS vector_distance]")
             .sort_by("vector_distance")
@@ -61,4 +62,4 @@ class RedisStack(VDatabase):
             q, query_params={"vec": np.array(embedding, dtype=np.float32).tobytes()}
         )
 
-        return []
+        return res.docs
