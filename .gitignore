@@ -1,3 +1,5 @@
+.DS_Store
+
 # UV
 .python-version
 pyproject.toml
