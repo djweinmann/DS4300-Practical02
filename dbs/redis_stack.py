@@ -15,7 +15,7 @@ class RedisStack(VDatabase):
         self.prefix = prefix
         self.metric = metric
 
-        self.client = redis.Redis(host="localhost", port=6380, db=0)
+        self.client = redis.Redis(host="localhost", port=6379, db=0)
 
         # Clear Redis
         self.client.flushdb()
