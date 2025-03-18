@@ -2,6 +2,7 @@ import ollama
 from dbs.chroma import Chroma
 from dbs.redis_stack import RedisStack
 from embeddings.nomic_embed_text import NomicEmbedText
+import argparse
 
 
 VECTOR_DIM = 768
@@ -27,7 +28,7 @@ def search_embeddings(client, query, top_k=3):
         return []
 
 
-def generate_rag_response(query, context_results):
+def generate_rag_response(query, context_results, model):
     # Prepare context string
     context_str = "\n".join(
         [
@@ -53,13 +54,13 @@ Answer:"""
 
     # Generate response using Ollama
     response = ollama.chat(
-        model="llama3:latest", messages=[{"role": "user", "content": prompt}]
+        model=f"{model}:latest", messages=[{"role": "user", "content": prompt}]
     )
 
     return response["message"]["content"]
 
 
-def interactive_search():
+def interactive_search(model="mistral"):
     """Interactive search interface."""
     print("🔍 RAG Search Interface")
     print("Type 'exit' to quit")
@@ -82,11 +83,28 @@ def interactive_search():
         context_results = search_embeddings(chroma_db, query)
 
         # Generate RAG response
-        response = generate_rag_response(query, context_results)
+        response = generate_rag_response(query, context_results, model)
 
         print("\n--- Response ---")
         print(response)
 
 
 if __name__ == "__main__":
-    interactive_search()
+    parser = argparse.ArgumentParser(description="Parameters to search")
+
+    parser.add_argument(
+        "-m",
+        "--model",
+        type=str,
+        required=True,
+        help="LLM Model to use",
+    )
+    parser.add_argument(
+        "-t", "--trials", type=int, required=True, help="Number of trials"
+    )
+
+    args = parser.parse_args()
+
+    model = args.model
+
+    interactive_search(model)
