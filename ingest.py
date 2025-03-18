@@ -2,7 +2,7 @@
 
 import os
 import fitz
-from dbs.redis_stack import RedisStack
+from dbs.chroma import Chroma
 from embeddings.nomic_embed_text import NomicEmbedText
 
 VECTOR_DIM = 768
@@ -55,11 +55,16 @@ def process_docs(data_dir: str, store):
 
 def main():
     nomic_embed_text = NomicEmbedText()
-    redis_db = RedisStack(
+    # redis_db = RedisStack(
+    #     nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
+    # )
+    # redis_db.clear()
+    # process_docs("./class_notes", redis_db.store)
+    chroma_db = Chroma(
         nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
     )
-    redis_db.clear()
-    process_docs("./class_notes", redis_db.store)
+    chroma_db.clear()
+    process_docs("./class_notes/", chroma_db.store)
 
 
 if __name__ == "__main__":

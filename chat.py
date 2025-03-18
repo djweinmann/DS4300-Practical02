@@ -1,4 +1,5 @@
 import ollama
+from dbs.chroma import Chroma
 from dbs.redis_stack import RedisStack
 from embeddings.nomic_embed_text import NomicEmbedText
 
@@ -67,6 +68,9 @@ def interactive_search():
     redis_db = RedisStack(
         nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
     )
+    chroma_db = Chroma(
+        nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
+    )
 
     while True:
         query = input("\nEnter your search query: ")
@@ -75,7 +79,7 @@ def interactive_search():
             break
 
         # Search for relevant embeddings
-        context_results = search_embeddings(redis_db, query)
+        context_results = search_embeddings(chroma_db, query)
 
         # Generate RAG response
         response = generate_rag_response(query, context_results)
