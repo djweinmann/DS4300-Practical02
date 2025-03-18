@@ -3,17 +3,22 @@ from dbs.database import VDatabase
 import redis
 import numpy as np
 
+from embeddings.embedder import Embedder
+
 
 class RedisStack(VDatabase):
     """
     Redis Stack vector database
     """
 
-    def __init__(self, dim: int, name: str, prefix: str, metric: str) -> None:
+    def __init__(
+        self, embedder: Embedder, dim: int, name: str, prefix: str, metric: str
+    ) -> None:
         self.dim = dim
         self.name = name
         self.prefix = prefix
         self.metric = metric
+        self.embedder = embedder
 
         self.client = redis.Redis(host="localhost", port=6379, db=0)
 
@@ -36,8 +41,10 @@ class RedisStack(VDatabase):
             """
         )
 
-    def store(self, file, page, chunk, embedding):
+    def store(self, file, page, chunk):
         """ """
+        embedding = self.embedder(chunk)
+
         key = f"{self.prefix}:{file}_page_{page}_chunk_{chunk}"
         self.client.hset(
             key,
@@ -51,8 +58,11 @@ class RedisStack(VDatabase):
             },
         )
 
-    def retreive(self, embedding):
+    def retreive(self, prompt):
         """ """
+
+        embedding = self.embedder(prompt)
+
         q = (
             Query("*=>[KNN 5 @embedding $vec AS vector_distance]")
             .sort_by("vector_distance")

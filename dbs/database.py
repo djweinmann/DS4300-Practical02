@@ -14,11 +14,11 @@ class VDatabase(ABC):
         pass
 
     @abstractmethod
-    def store(self, file: str, page: str, chunk: str, embedding: list) -> None:
+    def store(self, file: str, page: str, chunk: str) -> None:
         """"""
         pass
 
     @abstractmethod
-    def retreive(self, embedding: list) -> list:
+    def retreive(self, prompt: str) -> list:
         """"""
         pass

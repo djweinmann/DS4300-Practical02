@@ -1,9 +1,9 @@
 """"""
 
-import ollama
 import os
 import fitz
 from dbs.redis_stack import RedisStack
+from embeddings.nomic_embed_text import NomicEmbedText
 
 VECTOR_DIM = 768
 INDEX_NAME = "embedding_index"
@@ -30,12 +30,6 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
     return chunks
 
 
-def get_embedding(text: str, model: str = "nomic-embed-text") -> list:
-    """ """
-    response = ollama.embeddings(model=model, prompt=text)
-    return response["embedding"]
-
-
 def process_docs(data_dir: str, store):
     """
     Process all the documents in a given directory
@@ -50,19 +44,20 @@ def process_docs(data_dir: str, store):
             for page_num, text in text_by_page:
                 chunks = split_text_into_chunks(text)
                 for chunk_index, chunk in enumerate(chunks):
-                    embedding = get_embedding(chunk)
                     store(
                         file=file_name,
                         page=str(page_num),
                         # chunk=str(chunk_index),
                         chunk=str(chunk),
-                        embedding=embedding,
                     )
             print(f" -----> Processed {file_name}")
 
 
 def main():
-    redis_db = RedisStack(VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC)
+    nomic_embed_text = NomicEmbedText()
+    redis_db = RedisStack(
+        nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
+    )
     redis_db.clear()
     process_docs("./class_notes", redis_db.store)
 

@@ -1,5 +1,6 @@
 import ollama
 from dbs.redis_stack import RedisStack
+from embeddings.nomic_embed_text import NomicEmbedText
 
 
 VECTOR_DIM = 768
@@ -8,15 +9,9 @@ DOC_PREFIX = "doc:"
 DISTANCE_METRIC = "COSINE"
 
 
-def get_embedding(text: str, model: str = "nomic-embed-text") -> list:
-    response = ollama.embeddings(model=model, prompt=text)
-    return response["embedding"]
-
-
 def search_embeddings(client, query, top_k=3):
     try:
-        query_embedding = get_embedding(query)
-        top_results = client.retreive(query_embedding)[:top_k]
+        top_results = client.retreive(query)[:top_k]
 
         # Print results for debugging
         for result in top_results:
@@ -68,7 +63,10 @@ def interactive_search():
     print("🔍 RAG Search Interface")
     print("Type 'exit' to quit")
 
-    redis_db = RedisStack(VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC)
+    nomic_embed_text = NomicEmbedText()
+    redis_db = RedisStack(
+        nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
+    )
 
     while True:
         query = input("\nEnter your search query: ")
