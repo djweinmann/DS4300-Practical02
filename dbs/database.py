@@ -9,6 +9,11 @@ class VDatabase(ABC):
         pass
 
     @abstractmethod
+    def clear(self) -> None:
+        """"""
+        pass
+
+    @abstractmethod
     def store(self, file: str, page: str, chunk: str, embedding: list) -> None:
         """"""
         pass

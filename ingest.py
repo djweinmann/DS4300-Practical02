@@ -63,6 +63,7 @@ def process_docs(data_dir: str, store):
 
 def main():
     redis_db = RedisStack(VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC)
+    redis_db.clear()
     process_docs("./class_notes", redis_db.store)
 
 

@@ -17,6 +17,8 @@ class RedisStack(VDatabase):
 
         self.client = redis.Redis(host="localhost", port=6379, db=0)
 
+    def clear(self):
+        """ """
         # Clear Redis
         self.client.flushdb()
 
@@ -54,7 +56,7 @@ class RedisStack(VDatabase):
         q = (
             Query("*=>[KNN 5 @embedding $vec AS vector_distance]")
             .sort_by("vector_distance")
-            .return_fields("id", "vector_distance")
+            .return_fields("id", "file", "page", "chunk", "vector_distance")
             .dialect(2)
         )
 
@@ -62,4 +64,14 @@ class RedisStack(VDatabase):
             q, query_params={"vec": np.array(embedding, dtype=np.float32).tobytes()}
         )
 
-        return res.docs
+        results = [
+            {
+                "file": result.file,
+                "page": result.page,
+                "chunk": result.chunk,
+                "similarity": result.vector_distance,
+            }
+            for result in res.docs
+        ]
+
+        return results
