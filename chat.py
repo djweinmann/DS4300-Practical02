@@ -1,7 +1,13 @@
+""" """
+
 from dbs.database import VDatabase
-from utils.parse_args import get_database, get_model, get_verbose, get_query
+from utils.parse_args import get_database, get_model, get_verbose, get_prompt
 import asyncio
 from ollama import AsyncClient, generate
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.styles import Style
+from prompt_toolkit.cursor_shapes import CursorShape
+from prompt_toolkit import prompt
 
 SYSTEM_MSG = """\
 You are an uptight rizzer rapper by the name drippidy d. You also happen to \
@@ -33,6 +39,34 @@ Only respond to the query with the provided context or the chat history.
 """
 
 
+def chat_input(prompt_text: str) -> str:
+    """
+    a wrapped and configured input element which has additional features compared to
+    the native python implementation
+    :param prompt_text: text to prompt the user with for input
+    :returns: the user inputted text
+    """
+    prompt_style = Style.from_dict(
+        {
+            "prompt": "ansipurple bold",
+            "input": "",
+        }
+    )
+
+    placeholder = HTML(
+        "<ansibrightblack>send message (:help for help)</ansibrightblack>"
+    )
+
+    return prompt(
+        prompt_text,
+        placeholder=placeholder,
+        default="",
+        style=prompt_style,
+        mouse_support=True,
+        cursor=CursorShape.BLINKING_BEAM,
+    ).lower()
+
+
 def search_embeddings(client, query, top_k=3, verbose=False):
     try:
         top_results = client.retreive(query)[:top_k]
@@ -42,6 +76,8 @@ def search_embeddings(client, query, top_k=3, verbose=False):
                 print(
                     f"---> File: {result['file']}, Page: {result['page']}, Chunk: {result['chunk']}"
                 )
+
+            print("\n")
 
         return top_results
 
@@ -61,7 +97,8 @@ def generate_rag_response(context_results, verbose=False):
     )
 
     if verbose:
-        print(f"context_str: {context_str}")
+        print(f"---> Context prompt:\n{context_str}")
+        print("\n")
 
     return context_str
 
@@ -69,8 +106,8 @@ def generate_rag_response(context_results, verbose=False):
 async def chat(model: str, chatlog: list) -> None:
     """
     send the query to the LLM and stream in the response
-    :model: name of the model to use
-    :chatlog: chatlog for the current conversation
+    :param model: name of the model to use
+    :param chatlog: chatlog for the current conversation
     """
     async for part in await AsyncClient().chat(
         model=f"{model}:latest", messages=chatlog, stream=True
@@ -81,17 +118,14 @@ async def chat(model: str, chatlog: list) -> None:
 def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
     """
     start an interactive chat session
-    :model: name of the model to use
-    :db: vector database to use
-    :verbose: enable verbose logging
+    :param model: name of the model to use
+    :param db: vector database to use
+    :param verbose: enable verbose logging
     """
-    print("🔍 RAG Search Interface")
-    print("Type ':help' for ")
-
     chatlog = [{"role": "system", "content": SYSTEM_MSG}]
 
     while True:
-        query = input("\n>>> ")
+        query = chat_input(">>> ")
 
         if query[0] == ":":
             match query.lower():
@@ -115,6 +149,8 @@ def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
         chatlog.append({"role": "user", "content": generate_prompt(query, ctx_str)})
         asyncio.run(chat(model, chatlog))
 
+        print("\n")
+
 
 def main():
     db = get_database()
@@ -122,14 +158,14 @@ def main():
     verbose = get_verbose()
 
     # If provided, process and return the provided query
-    query = get_query()
-    if query:
-        ctx_response = search_embeddings(db, query)
+    prompt = get_prompt()
+    if prompt:
+        ctx_response = search_embeddings(db, prompt)
         ctx = generate_rag_response(ctx_response)
         res = generate(
             model=f"{model}:latest",
             system=SYSTEM_MSG,
-            prompt=generate_prompt(query, ctx),
+            prompt=generate_prompt(prompt, ctx),
         )
         print(res["response"])
         return
