@@ -1,5 +1,36 @@
-import ollama
+from dbs.database import VDatabase
 from utils.parse_args import get_database, get_model, get_verbose, get_query
+import asyncio
+from ollama import AsyncClient, generate
+
+SYSTEM_MSG = """\
+You are an uptight rizzer rapper by the name drippidy d. You also happen to \
+be a computer science pro that knowns all you know ya know. Use the following context to answer the query as accurately as possible \
+while bringing in the drip. If the context is not relevant to the query, say 'I don't know'.
+
+You should respond in the tone of the true jayz or emenem to honor your rapping legacy.
+"""
+
+HELP_MSG = """\
+Available commands:
+    :exit      Exit the chat
+    :clear     Clear the chatlog
+    :help      Shows this help page
+"""
+
+
+def generate_prompt(query, ctx):
+    return f"""\
+Only respond to the query with the provided context or the chat history.
+
+<Context>
+{ctx}
+</Context>
+
+<Query>
+{query}
+</Query>
+"""
 
 
 def search_embeddings(client, query, top_k=3, verbose=False):
@@ -19,7 +50,7 @@ def search_embeddings(client, query, top_k=3, verbose=False):
         return []
 
 
-def generate_rag_response(query, context_results, model, verbose=False):
+def generate_rag_response(context_results, verbose=False):
     # Prepare context string
     context_str = "\n".join(
         [
@@ -32,45 +63,57 @@ def generate_rag_response(query, context_results, model, verbose=False):
     if verbose:
         print(f"context_str: {context_str}")
 
-    prompt = f"""You are an uptight rizzer rapper by the name drippidy d. You also happen to
-    be a computer science pro that knowns all you know ya know. Use the following context to answer the query as accurately as possible
-    while bringing in the drip. If the context is not relevant to the query, say 'I don't know'.
-
-    You should respond in the tone of the true jayz or emenem to honor your rapping legacy.
-
-Context:
-{context_str}
-
-Query: {query}
-
-Answer:"""
-
-    response = ollama.chat(
-        model=f"{model}:latest", messages=[{"role": "user", "content": prompt}]
-    )
-
-    return response["message"]["content"]
+    return context_str
 
 
-def interactive_search(model, db, verbose=False):
-    """Interactive search interface."""
+async def chat(model: str, chatlog: list) -> None:
+    """
+    send the query to the LLM and stream in the response
+    :model: name of the model to use
+    :chatlog: chatlog for the current conversation
+    """
+    async for part in await AsyncClient().chat(
+        model=f"{model}:latest", messages=chatlog, stream=True
+    ):
+        print(part["message"]["content"], end="", flush=True)
+
+
+def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
+    """
+    start an interactive chat session
+    :model: name of the model to use
+    :db: vector database to use
+    :verbose: enable verbose logging
+    """
     print("🔍 RAG Search Interface")
-    print("Type 'exit' to quit")
+    print("Type ':help' for ")
+
+    chatlog = [{"role": "system", "content": SYSTEM_MSG}]
 
     while True:
-        query = input("\nEnter your search query: ")
+        query = input("\n>>> ")
 
-        if query.lower() == "exit":
-            break
+        if query[0] == ":":
+            match query.lower():
+                case ":help":
+                    print(HELP_MSG)
+                case ":clear":
+                    chatlog = [{"role": "system", "content": SYSTEM_MSG}]
+                    print("Chatlog cleared")
+                case ":exit":
+                    break
+                case _:
+                    print("unknown command " + query)
+            continue
 
         # Search for relevant embeddings
         context_results = search_embeddings(db, query, verbose=verbose)
 
         # Generate RAG response
-        response = generate_rag_response(query, context_results, model, verbose)
+        ctx_str = generate_rag_response(context_results, verbose)
 
-        print("\n--- Response ---")
-        print(response)
+        chatlog.append({"role": "user", "content": generate_prompt(query, ctx_str)})
+        asyncio.run(chat(model, chatlog))
 
 
 def main():
@@ -81,12 +124,18 @@ def main():
     # If provided, process and return the provided query
     query = get_query()
     if query:
-        context_results = search_embeddings(db, query)
-        response = generate_rag_response(query, context_results, model)
-        print(response)
+        ctx_response = search_embeddings(db, query)
+        ctx = generate_rag_response(ctx_response)
+        res = generate(
+            model=f"{model}:latest",
+            system=SYSTEM_MSG,
+            prompt=generate_prompt(query, ctx),
+        )
+        print(res["response"])
         return
 
-    interactive_search(model, db, verbose)
+    # Otherwise start up an interactive session
+    interactive_chat(model, db, verbose)
 
 
 if __name__ == "__main__":
