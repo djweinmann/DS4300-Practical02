@@ -6,6 +6,15 @@
 2. Run `python ingest.py` to clear and ingest the data to **all** the databases
 3. Run `python chat.py` to chat with the model
 
+## Chat Commands
+
+In an interactive chat session, there are some commands that can be run. All
+commands are prefiexed with a colon `:`.
+
+- `:help` - show the help page which lists all available commands
+- `:exit` - exits the chat session
+- `:clear` - clears the chat log (creating a new conversation)
+
 ## CLI Documentation
 
 There are a variety of CI flags designed to allow control over the ingestion and

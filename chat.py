@@ -67,40 +67,40 @@ def chat_input(prompt_text: str) -> str:
     ).lower()
 
 
+def generate_ctx_string(context_results):
+    context_str = "\n".join(
+        [
+            f"""\
+<Document>
+Filename: {result.get("file", "Unknown file")}
+Page: {result.get("page", "Unknown page")}
+Similarity: {float(result.get("similarity", 0)):.2f}
+<Text>
+{result.get("chunk", "Unknown chunk")}
+</Text>
+</Document>
+            """
+            for result in context_results
+        ]
+    )
+
+    return context_str
+
+
 def search_embeddings(client, query, top_k=3, verbose=False):
     try:
         top_results = client.retreive(query)[:top_k]
 
         if verbose:
+            print("---> Matching documents (file | page | chunk)")
             for result in top_results:
-                print(
-                    f"---> File: {result['file']}, Page: {result['page']}, Chunk: {result['chunk']}"
-                )
-
-            print("\n")
+                print(f"{result['file']} | {result['page']} | {result['chunk']}")
 
         return top_results
 
     except Exception as e:
         print(f"Search error: {e}")
         return []
-
-
-def generate_rag_response(context_results, verbose=False):
-    # Prepare context string
-    context_str = "\n".join(
-        [
-            f"From {result.get('file', 'Unknown file')} (page {result.get('page', 'Unknown page')}, chunk {result.get('chunk', 'Unknown chunk')}) "
-            f"with similarity {float(result.get('similarity', 0)):.2f}"
-            for result in context_results
-        ]
-    )
-
-    if verbose:
-        print(f"---> Context prompt:\n{context_str}")
-        print("\n")
-
-    return context_str
 
 
 async def chat(model: str, chatlog: list) -> None:
@@ -140,13 +140,14 @@ def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
                     print("unknown command " + query)
             continue
 
-        # Search for relevant embeddings
         context_results = search_embeddings(db, query, verbose=verbose)
+        ctx = generate_ctx_string(context_results)
 
-        # Generate RAG response
-        ctx_str = generate_rag_response(context_results, verbose)
+        if verbose:
+            print("---> Full prompt")
+            print(generate_prompt(prompt, ctx))
 
-        chatlog.append({"role": "user", "content": generate_prompt(query, ctx_str)})
+        chatlog.append({"role": "user", "content": generate_prompt(query, ctx)})
         asyncio.run(chat(model, chatlog))
 
         print("\n")
@@ -160,13 +161,18 @@ def main():
     # If provided, process and return the provided query
     prompt = get_prompt()
     if prompt:
-        ctx_response = search_embeddings(db, prompt)
-        ctx = generate_rag_response(ctx_response)
+        ctx_response = search_embeddings(db, prompt, verbose=verbose)
+        ctx = generate_ctx_string(ctx_response)
+        if verbose:
+            print("---> Full prompt")
+            print(generate_prompt(prompt, ctx))
+
         res = generate(
             model=f"{model}:latest",
             system=SYSTEM_MSG,
             prompt=generate_prompt(prompt, ctx),
         )
+
         print(res["response"])
         return
 
