@@ -1,3 +1,4 @@
 ollama
 fitz
 PyMuPDF
+prompt_toolkit

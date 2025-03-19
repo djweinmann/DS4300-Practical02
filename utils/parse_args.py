@@ -49,7 +49,7 @@ parser.add_argument("--chunksize", type=int, default=300, help="size to chunk te
 parser.add_argument("--overlap", type=int, default=50, help="overlap in chunks")
 
 parser.add_argument(
-    "-q", "--query", type=str, help="chat query to run. will return only the response"
+    "-p", "--prompt", type=str, help="chat prompt to run. will return only the response"
 )
 
 parser.add_argument(
@@ -97,5 +97,5 @@ def get_ingestion():
     return args.chunksize, args.overlap
 
 
-def get_query():
-    return args.query
+def get_prompt():
+    return args.prompt
