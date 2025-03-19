@@ -99,9 +99,6 @@ if __name__ == "__main__":
         required=True,
         help="LLM Model to use",
     )
-    parser.add_argument(
-        "-t", "--trials", type=int, required=True, help="Number of trials"
-    )
 
     args = parser.parse_args()
 
