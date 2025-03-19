@@ -24,10 +24,8 @@ class RedisStack(VDatabase):
 
     def clear(self):
         """ """
-        # Clear Redis
         self.client.flushdb()
 
-        # Create an HNSW index in Redis
         try:
             self.client.execute_command(f"FT.DROPINDEX {self.name} DD")
         except redis.ResponseError:

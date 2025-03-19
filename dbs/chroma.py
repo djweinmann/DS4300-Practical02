@@ -29,15 +29,14 @@ class Chroma(VDatabase):
     def clear(self) -> None:
         """"""
         try:
-            self.client.delete_collection(name="my_collection")
+            self.client.delete_collection(name=self.name)
         except:
             pass
 
         self.collection = self.client.create_collection(
-            name="my_collection",
+            name=self.name,
             embedding_function=self.chromaEmbedder,
             metadata={
-                "description": "my first Chroma collection",
                 "created": str(datetime.now()),
                 "hnsw:space": "cosine",
                 "hnsw:search_ef": 100,  # TODO: Investigate this value
@@ -55,13 +54,11 @@ class Chroma(VDatabase):
     def retreive(self, prompt) -> list:
         """"""
         self.collection = self.client.get_collection(
-            name="my_collection", embedding_function=self.chromaEmbedder
+            name=self.name, embedding_function=self.chromaEmbedder
         )
         res = self.collection.query(
             query_texts=[prompt],
             n_results=10,
-            # where={"metadata_field": "is_equal_to_this"},
-            # where_document={"$contains": "search_string"},
         )
 
         results = []

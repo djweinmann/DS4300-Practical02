@@ -2,13 +2,7 @@
 
 import os
 import fitz
-from dbs.chroma import Chroma
-from embeddings.nomic_embed_text import NomicEmbedText
-
-VECTOR_DIM = 768
-INDEX_NAME = "embedding_index"
-DOC_PREFIX = "doc:"
-DISTANCE_METRIC = "COSINE"
+from utils.parse_args import get_database, get_ingestion
 
 
 def extract_text_from_pdf(pdf_path: str):
@@ -30,7 +24,7 @@ def split_text_into_chunks(text, chunk_size=300, overlap=50):
     return chunks
 
 
-def process_docs(data_dir: str, store):
+def process_docs(data_dir: str, store, chunk_size, overlap):
     """
     Process all the documents in a given directory
     :data_dir str: the directory with all the data files
@@ -42,7 +36,7 @@ def process_docs(data_dir: str, store):
             pdf_path = os.path.join(data_dir, file_name)
             text_by_page = extract_text_from_pdf(pdf_path)
             for page_num, text in text_by_page:
-                chunks = split_text_into_chunks(text)
+                chunks = split_text_into_chunks(text, chunk_size, overlap)
                 for chunk_index, chunk in enumerate(chunks):
                     store(
                         file=file_name,
@@ -54,17 +48,12 @@ def process_docs(data_dir: str, store):
 
 
 def main():
-    nomic_embed_text = NomicEmbedText()
-    # redis_db = RedisStack(
-    #     nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
-    # )
-    # redis_db.clear()
-    # process_docs("./class_notes", redis_db.store)
-    chroma_db = Chroma(
-        nomic_embed_text, VECTOR_DIM, INDEX_NAME, DOC_PREFIX, DISTANCE_METRIC
-    )
-    chroma_db.clear()
-    process_docs("./class_notes/", chroma_db.store)
+    db = get_database()
+    db.clear()
+
+    chunk_size, overlap = get_ingestion()
+
+    process_docs("./class_notes/", db.store, chunk_size, overlap)
 
 
 if __name__ == "__main__":

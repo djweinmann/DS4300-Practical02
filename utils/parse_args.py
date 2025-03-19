@@ -7,10 +7,17 @@ from embeddings.nomic_embed_text import NomicEmbedText
 parser = argparse.ArgumentParser(description="Parameters to search")
 
 parser.add_argument(
+    "-m",
+    "--model",
+    type=str,
+    default="mistral",
+    help="LLM Model to use",
+)
+
+parser.add_argument(
     "-e",
     "--embedder",
     type=str,
-    required=False,
     default="nomic-embed-text",
     help="embedding model to use",
 )
@@ -18,21 +25,41 @@ parser.add_argument(
     "-d",
     "--database",
     type=str,
-    required=False,
     default="redisstack",
     help="vector database to use",
 )
 
-parser.add_argument("--vectordim", type=int, required=False, default=768, help="")
 parser.add_argument(
-    "--indexname", type=str, required=False, default="embedding_idx", help=""
+    "--vectordim", type=int, default=768, help="dimension of the vector"
 )
-parser.add_argument("--prefix", type=str, required=False, default="doc:", help="")
-parser.add_argument("--metric", type=str, required=False, default="COSINE", help="")
+parser.add_argument(
+    "--indexname",
+    type=str,
+    default="embedding_idx",
+    help="name of the vector index",
+)
+parser.add_argument("--prefix", type=str, default="doc:", help="document prefix")
+parser.add_argument(
+    "--metric",
+    type=str,
+    default="COSINE",
+    help="distance metric to use",
+)
+parser.add_argument("--chunksize", type=int, default=300, help="size to chunk text")
+parser.add_argument("--overlap", type=int, default=50, help="overlap in chunks")
+
+parser.add_argument(
+    "-q", "--query", type=str, help="chat query to run. will return only the response"
+)
+
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="include debug logging"
+)
+
+args = parser.parse_args()
 
 
 def get_embedder():
-    args = parser.parse_args()
     match args.embedder:
         case "nomic-embed-text":
             return NomicEmbedText()
@@ -41,7 +68,6 @@ def get_embedder():
 
 
 def get_database():
-    args = parser.parse_args(["database"])
     database = args.database
     embedder = get_embedder()
 
@@ -56,14 +82,20 @@ def get_database():
         case "chroma":
             return Chroma(embedder, dim, name, prefix, metric)
 
+    raise TypeError("unknown database " + args.database)
 
-parser.add_argument(
-    "-m",
-    "--model",
-    type=str,
-    required=True,
-    help="LLM Model to use",
-)
-parser.add_argument("-t", "--trials", type=int, required=True, help="Number of trials")
 
-args = parser.parse_args()
+def get_model():
+    return args.model
+
+
+def get_verbose():
+    return args.verbose
+
+
+def get_ingestion():
+    return args.chunksize, args.overlap
+
+
+def get_query():
+    return args.query
