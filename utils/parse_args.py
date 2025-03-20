@@ -10,7 +10,7 @@ parser.add_argument(
     "-m",
     "--model",
     type=str,
-    default="mistral",
+    default="mistral:latest",
     help="LLM Model to use",
 )
 

@@ -17,10 +17,14 @@ from prompt_toolkit import prompt
 # You should respond in the tone of the true jayz or emenem to honor your rapping legacy.
 # """
 
+# SYSTEM_MSG = """\
+# You are basketball superstar LeBron James, aka the GOAT, aka King James. You also are a computer science pro \
+# that knows about information and data storage systems. If the context is not relevant to the query, say 'I don't know'. \
+# You should respond by lying a lot and acting like a basketball superstar and the GOAT.
+# """
+
 SYSTEM_MSG = """\
-You are basketball superstar LeBron James, aka the GOAT, aka King James. You also are a computer science pro \
-that knows about information and data storage systems. If the context is not relevant to the query, say 'I don't know'. \
-You should respond by lying a lot and acting like a basketball superstar and the GOAT.
+You are a helpful assistant. Use the provided context to help generate your response. If you do not know, say 'I do not know'
 """
 
 
@@ -34,7 +38,7 @@ Available commands:
 
 def generate_prompt(query, ctx):
     return f"""\
-Only respond to the query with the provided context or the chat history.
+Respond to the query using the context to guide your response
 
 <Context>
 {ctx}
@@ -46,7 +50,7 @@ Only respond to the query with the provided context or the chat history.
 """
 
 
-def chat_input(prompt_text: str) -> str:
+def chat_input(prompt_text: str, **kwargs) -> str:
     """
     a wrapped and configured input element which has additional features compared to
     the native python implementation
@@ -69,8 +73,8 @@ def chat_input(prompt_text: str) -> str:
         placeholder=placeholder,
         default="",
         style=prompt_style,
-        mouse_support=True,
         cursor=CursorShape.BLINKING_BEAM,
+        **kwargs,
     ).lower()
 
 
@@ -117,7 +121,7 @@ async def chat(model: str, chatlog: list) -> None:
     :param chatlog: chatlog for the current conversation
     """
     async for part in await AsyncClient().chat(
-        model=f"{model}:latest", messages=chatlog, stream=True
+        model=model, messages=chatlog, stream=True
     ):
         print(part["message"]["content"], end="", flush=True)
 
@@ -130,9 +134,11 @@ def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
     :param verbose: enable verbose logging
     """
     chatlog = [{"role": "system", "content": SYSTEM_MSG}]
+    multiline = False
+    mouse_support = False
 
     while True:
-        query = chat_input(">>> ")
+        query = chat_input(">>> ", multiline=multiline, mouse_support=mouse_support)
 
         if query[0] == ":":
             match query.lower():
@@ -141,6 +147,10 @@ def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
                 case ":clear":
                     chatlog = [{"role": "system", "content": SYSTEM_MSG}]
                     print("Chatlog cleared")
+                case ":multiline":
+                    multiline = True
+                case ":mouse":
+                    mouse_support = True
                 case ":exit":
                     break
                 case _:
@@ -175,7 +185,7 @@ def main():
             print(generate_prompt(prompt, ctx))
 
         res = generate(
-            model=f"{model}:latest",
+            model=model,
             system=SYSTEM_MSG,
             prompt=generate_prompt(prompt, ctx),
         )
