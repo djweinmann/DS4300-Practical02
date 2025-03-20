@@ -3,6 +3,7 @@ import argparse
 from dbs.chroma import Chroma
 from dbs.redis_stack import RedisStack
 from embeddings.nomic_embed_text import NomicEmbedText
+from dbs.qdrant import Qdrant
 
 parser = argparse.ArgumentParser(description="Parameters to search")
 
@@ -81,6 +82,8 @@ def get_database():
             return RedisStack(embedder, dim, name, prefix, metric)
         case "chroma":
             return Chroma(embedder, dim, name, prefix, metric)
+        case "qdrant":
+            return Qdrant(embedder, dim, name, prefix, metric)
 
     raise TypeError("unknown database " + args.database)
 
