@@ -4,6 +4,7 @@ from dbs.chroma import Chroma
 from dbs.redis_stack import RedisStack
 from embeddings.nomic_embed_text import NomicEmbedText
 from embeddings.mini_lm_embed import MiniLMEmbedText
+from embeddings.mxbai_embed_text import MxbaiEmbedText
 from dbs.qdrant import Qdrant
 
 parser = argparse.ArgumentParser(description="Parameters to search")
@@ -65,9 +66,10 @@ def get_embedder():
     match args.embedder:
         case "nomic-embed-text":
             return NomicEmbedText()
-    match args.embedder:
-        case "minilm":
+        case "all-minilm":
             return MiniLMEmbedText()
+        case "mxbai-embed-large":
+            return MxbaiEmbedText()
 
     raise TypeError("unknown embedding model " + args.embedder)
 

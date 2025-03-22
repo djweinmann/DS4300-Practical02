@@ -43,6 +43,8 @@ chat behaviors as well as automate testing for different parameters.
   chatting and will return just the llm response on `STOUT`
 - `-v`, `--verbose` - enable verbose logging
 - `-d`, `--database` - vector database to use. Defaults to `redisstack`
+- `--indexname` - name of the index to store the embedded vectors. Defaults to `embedding_idx`
+
 
 
 
