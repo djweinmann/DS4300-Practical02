@@ -5,7 +5,7 @@ class VDatabase(ABC):
     """"""
 
     @abstractmethod
-    def __init__(self, dim: int, name: str, prefix: str, metric: str) -> None:
+    def __init__(self, name: str, prefix: str, metric: str) -> None:
         pass
 
     @abstractmethod

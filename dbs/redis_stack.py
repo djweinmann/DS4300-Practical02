@@ -11,14 +11,12 @@ class RedisStack(VDatabase):
     Redis Stack vector database
     """
 
-    def __init__(
-        self, embedder: Embedder, dim: int, name: str, prefix: str, metric: str
-    ) -> None:
-        self.dim = dim
+    def __init__(self, embedder: Embedder, name: str, prefix: str, metric: str) -> None:
         self.name = name
         self.prefix = prefix
         self.metric = metric
         self.embedder = embedder
+        self.dim = embedder.vector_dim
 
         self.client = redis.Redis(host="localhost", port=6379, db=0)
 

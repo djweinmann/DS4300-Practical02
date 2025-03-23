@@ -114,16 +114,86 @@ def search_embeddings(client, query, top_k=3, verbose=False):
         return []
 
 
-async def chat(model: str, chatlog: list) -> None:
+async def chat(model: str, chatlog: list, db) -> None:
     """
     send the query to the LLM and stream in the response
     :param model: name of the model to use
     :param chatlog: chatlog for the current conversation
     """
-    async for part in await AsyncClient().chat(
-        model=model, messages=chatlog, stream=True
-    ):
-        print(part["message"]["content"], end="", flush=True)
+    client = AsyncClient().chat(
+        model=model,
+        messages=chatlog,
+        stream=True,
+        # tools=[
+        #     {
+        #         "type": "function",
+        #         "function": {
+        #             "name": "fetch_data",
+        #             "description": "Search documentation",
+        #             "parameters": {
+        #                 "type": "object",
+        #                 "properties": {
+        #                     "query": {
+        #                         "type": "string",
+        #                         "description": "Query to search",
+        #                     },
+        #                 },
+        #                 "required": ["query"],
+        #             },
+        #         },
+        #     }
+        # ],
+    )
+
+    res = []
+    message = ""
+    async for part in await client:
+        # print(part)
+        # if res is None and not part.message.content:
+        #     res = part
+        if token := part.message.content:
+            print(token, end="", flush=True)
+            message = message + token
+        elif not part.done:
+            res.append(part)
+
+    # print("\n", res)
+    # print("\n", message)
+
+    # available_functions = {
+    #     "fetch_data": lambda **kwargs: search_embeddings(db, kwargs["query"])
+    # }
+
+    # if res is None:
+    #     return
+    #
+    # if res.message.tool_calls:
+    #     # There may be multiple tool calls in the response
+    #     for tool in res.message.tool_calls:
+    #         # Ensure the function is available, and then call it
+    #         if function_to_call := available_functions.get(tool.function.name):
+    #             print("Calling function:", tool.function.name)
+    #             print("Arguments:", tool.function.arguments)
+    #             output = function_to_call(**tool.function.arguments)
+    #             print("Function output:", output)
+    #         else:
+    #             print("Function", tool.function.name, "not found")
+    #
+    #     # # Only needed to chat with the model using the tool call results
+    #     # if res.message.tool_calls:
+    #     #     # Add the function response to messages for the model to use
+    #     #     chatlog.append(response.message)
+    #     #     chatlog.append({'role': 'tool', 'content': str(output), 'name': tool.function.name})
+    #     #
+    #     #     # Get final response from model with function outputs
+    #     #     final_response = await client.chat('llama3.1', messages=messages)
+    #     #     print('Final response:', final_response.message.content)
+    #     #
+    #     #   else:
+    #     #     print('No tool calls returned from model')
+
+    if message:
+        chatlog.append({"role": "assistant", "content": message})
 
 
 def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
@@ -165,7 +235,7 @@ def interactive_chat(model: str, db: VDatabase, verbose=False) -> None:
             print(generate_prompt(prompt, ctx))
 
         chatlog.append({"role": "user", "content": generate_prompt(query, ctx)})
-        asyncio.run(chat(model, chatlog))
+        asyncio.run(chat(model, chatlog, db))
 
         print("\n")
 

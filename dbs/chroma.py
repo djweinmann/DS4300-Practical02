@@ -9,11 +9,10 @@ from embeddings.embedder import Embedder
 class Chroma(VDatabase):
     """"""
 
-    def __init__(
-        self, embedder: Embedder, dim: int, name: str, prefix: str, metric: str
-    ) -> None:
+    def __init__(self, embedder: Embedder, name: str, prefix: str, metric: str) -> None:
         self.embedder = embedder
-        self.dim = dim
+        self.dim = embedder.vector_dim
+
         self.name = name
         self.prefix = prefix
         self.metric = metric

@@ -33,9 +33,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--vectordim", type=int, default=768, help="dimension of the vector"
-)
-parser.add_argument(
     "--indexname",
     type=str,
     default="embedding_idx",
@@ -78,18 +75,17 @@ def get_database():
     database = args.database
     embedder = get_embedder()
 
-    dim = args.vectordim
     name = args.indexname
     prefix = args.prefix
     metric = args.metric
 
     match database:
         case "redisstack":
-            return RedisStack(embedder, dim, name, prefix, metric)
+            return RedisStack(embedder, name, prefix, metric)
         case "chroma":
-            return Chroma(embedder, dim, name, prefix, metric)
+            return Chroma(embedder, name, prefix, metric)
         case "qdrant":
-            return Qdrant(embedder, dim, name, prefix, metric)
+            return Qdrant(embedder, name, prefix, metric)
 
     raise TypeError("unknown database " + args.database)
 

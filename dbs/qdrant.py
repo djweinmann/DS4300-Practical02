@@ -9,45 +9,48 @@ class Qdrant(VDatabase):
     """
     Qdrant vector database
     """
-    
-    def __init__(
-        self, embedder: Embedder, dim: int, name: str, prefix: str, metric: str
-    ) -> None:
-        self.dim = dim
+
+    def __init__(self, embedder: Embedder, name: str, prefix: str, metric: str) -> None:
         self.name = name
         self.prefix = prefix
         self.metric = metric
+
+        self.dim = embedder.vector_dim
         self.embedder = embedder
-        
+
         self.client = qdrant.QdrantClient(host="localhost", port=6333)
-        
+
     def clear(self) -> None:
         """"""
         try:
             self.client.delete_collection(collection_name=self.name)
         except:
             pass
-        
+
         self.collection = self.client.create_collection(
             collection_name=self.name,
-            vectors_config=models.VectorParams(size=self.dim, distance=models.Distance.COSINE)
+            vectors_config=models.VectorParams(
+                size=self.dim, distance=models.Distance.COSINE
+            ),
         )
-       
-    
+
     def store(self, file: str, page: str, chunk: str) -> None:
         """"""
         embedding = self.embedder(chunk)
-        
+
         key = f"{self.prefix}:{file}_page_{page}_chunk_{chunk}"
         self.client.upsert(
             collection_name=self.name,
             wait=True,
             points=[
-                PointStruct(id=abs(hash(key)), vector=embedding, payload={"file": file, "page":page, "chunk": chunk})
-            ]
+                PointStruct(
+                    id=abs(hash(key)),
+                    vector=embedding,
+                    payload={"file": file, "page": page, "chunk": chunk},
+                )
+            ],
         )
-        
-    
+
     def retreive(self, prompt):
         """ """
 
@@ -56,17 +59,18 @@ class Qdrant(VDatabase):
             collection_name=self.name,
             query_vector=embedding,
             with_payload=True,
-            limit=10
-            )
-        
+            limit=10,
+        )
+
         results = [
             {
                 "file": result.payload["file"],
                 "page": result.payload["page"],
                 "chunk": result.payload["chunk"],
-                "similarity": result.score
+                "similarity": result.score,
             }
             for result in res
         ]
-        
+
         return results
+
