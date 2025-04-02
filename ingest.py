@@ -3,7 +3,7 @@
 import os
 import fitz
 from utils.parse_args import get_database, get_ingestion
-
+from utils.timer import timer
 
 def extract_text_from_pdf(pdf_path: str):
     """Extract text from a PDF file."""
@@ -46,7 +46,7 @@ def process_docs(data_dir: str, store, chunk_size, overlap):
                     )
             print(f" -----> Processed {file_name}")
 
-
+@timer
 def main():
     db = get_database()
     db.clear()
